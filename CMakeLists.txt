@@ -46,17 +46,17 @@ else()
     ecbuild_bundle( PROJECT fckit     GIT "https://github.com/ecmwf/fckit.git" TAG 0.11.0 )
     ecbuild_bundle( PROJECT atlas     GIT "https://github.com/ecmwf/atlas.git" TAG 0.34.0 )
 
-    ecbuild_bundle( PROJECT oops      GIT "https://github.com/JCSDA/oops.git"        BRANCH develop UPDATE )
-    ecbuild_bundle( PROJECT vader     GIT "https://github.com/JCSDA/vader.git"       BRANCH develop UPDATE )
-    ecbuild_bundle( PROJECT saber     GIT "https://github.com/JCSDA/saber.git"       BRANCH develop UPDATE )
+    ecbuild_bundle( PROJECT oops      GIT "https://github.com/wreckdump/oops.git"        BRANCH aocc-support UPDATE )
+    ecbuild_bundle( PROJECT vader     GIT "https://github.com/wreckdump/vader.git"       BRANCH aocc-support UPDATE )
+    ecbuild_bundle( PROJECT saber     GIT "https://github.com/wreckdump/saber.git"       BRANCH aocc-support UPDATE )
     ecbuild_bundle( PROJECT crtm      GIT "https://github.com/JCSDA/CRTMv3.git"               BRANCH develop UPDATE )
 
     option(ENABLE_IODA_DATA "Obtain ioda test data from ioda-data repository (vs tarball)" ON)
     ecbuild_bundle( PROJECT ioda-data GIT "https://github.com/JCSDA-internal/ioda-data.git"   BRANCH develop UPDATE )
-    ecbuild_bundle( PROJECT ioda      GIT "https://github.com/JCSDA/ioda.git"        BRANCH develop UPDATE )
+    ecbuild_bundle( PROJECT ioda      GIT "https://github.com/wreckdump/ioda.git"        BRANCH aocc-support UPDATE )
     option(ENABLE_UFO_DATA "Obtain ufo test data from ufo-data repository (vs tarball)" ON)
     ecbuild_bundle( PROJECT ufo-data  GIT "https://github.com/JCSDA-internal/ufo-data.git"    BRANCH develop UPDATE )
-    ecbuild_bundle( PROJECT ufo       GIT "https://github.com/JCSDA/ufo.git"                  BRANCH develop UPDATE )
+    ecbuild_bundle( PROJECT ufo       GIT "https://github.com/wreckdump/ufo.git"                  BRANCH aocc-support UPDATE )
 
     # Build IODA converters if requested
     option(BUILD_IODA_CONVERTERS "Build IODA Converters" OFF)
