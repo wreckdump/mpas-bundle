@@ -1,184 +1,200 @@
-(C) Copyright 2017-2026 UCAR
+# MPAS-Bundle AOCC Support
 
-This software is licensed under the terms of the Apache Licence Version 2.0
-which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+This repository is a fork of the JCSDA MPAS-Bundle repository with additional
+modifications required to build MPAS-JEDI using the AMD AOCC compiler stack.
 
-# Table of Contents
+The primary goal of this fork is to provide a reproducible build environment
+for AMD systems using AOCC compilers, particularly AOCC Flang.
 
-* [Installation](#installation)
-    * [Git Configuration](#git-configuration)
-    * [Installation Steps](#installation-steps)
-    * [Building on a Compute Node](#building-on-a-compute-node)
-    * [Building in an Interactive Session](#building-in-an-interactive-session)
-    * [Useful CMake Flags](#useful-cmake-flags)
-    * [Useful CTest Flags](#useful-ctest-flags)
+Original repository:
+https://github.com/JCSDA/mpas-bundle
 
-# Installation
+Fork:
+https://github.com/wreckdump/mpas-bundle
 
-### Git Configuration
 
-* It's recommended to configure Git using command line to simplify repository access. You can set your
-  name and email, which helps avoid repeatedly entering your credentials.
-  Run the following commands in your terminal:
-    ```bash
-    # Set your name
-  git config --global user.name "Your Name"
+## Motivation
 
-  # Set your email
-  git config --global user.email "yourname@somewhere.something"
+The upstream JCSDA repositories are actively developed and periodically update
+their internal dependencies. During testing with AOCC 5.2, several issues were
+identified that prevent a clean build using the default upstream development
+branches.
 
-  # Set credential helper with timeout
-  git config --global credential.helper 'cache --timeout=3600'
-    ```
-* Ensure Git LFS is installed and configured prior to building ```mpas-bundle```.
+The required changes are mainly compatibility fixes for the following JCSDA
+components:
 
-     ```bash
-     git lfs install
-     ```
+- ioda
+- oops
+- saber
+- ufo
+- vader
 
-### Installation Steps
+The modifications are maintained in separate AOCC-specific branches in this
+fork.
 
-_**For performance and memory reasons, it is recommended to compile ```mpas-bundle``` using the gnu platform.**_
 
-* **Clone the Repository:**
-  Clone the `mpas-bundle` repository and navigate into the repository's root directory.
+## AOCC Support Branches
 
-    ```bash
-    git clone https://github.com/JCSDA/mpas-bundle.git
-  ```
-    ```bash
-    cd mpas-bundle
-    ```
+The following repositories use the `aocc-support` branch:
 
-<a id="env_script"></a>
+- oops
+  https://github.com/wreckdump/oops/tree/aocc-support
 
-* To set up your environment for building ```mpas-bundle```, run the appropriate environment setup script for your
-  computing and compiler platform.
-  The compiler/shell specific environment configuration commands are listed in the below table.
+- vader
+  https://github.com/wreckdump/vader/tree/aocc-support
 
-  |              | GNU | Intel |
-  |:------------:|:--------------:|:----------------:|
-  | __zsh/bash__ | `source <mpas_bundle_dir>/env-setup/gnu-derecho.sh` | `source <mpas_bundle_dir>/env-setup/intel-derecho.sh` |
-  | __csh/tcsh__ | `source <mpas_bundle_dir>/env-setup/gnu-derecho.csh` | `source <mpas_bundle_dir>/env-setup/intel-derecho.csh` |
+- saber
+  https://github.com/wreckdump/saber/tree/aocc-support
 
-  If you want to run the tests for the ioda converters, `source <mpas_bundle_dir>/env-setup/ioda-modules.list` for any shell.
+- ioda
+  https://github.com/wreckdump/ioda/tree/aocc-support
 
-* Create and navigate into the build directory.
+- ufo
+  https://github.com/wreckdump/ufo/tree/aocc-support
 
-  ```bash
-    mkdir -p <mpas-bundle_build_dir> 
-  ```
-  ```bash
-    cd <mpas-bundle_build_dir> 
-    ```
-* To configure the build using CMake, set the `MPAS_DOUBLE_PRECISION` flag according to your usage needs: 
-  enable it (`-DMPAS_DOUBLE_PRECISION=ON`) for running the `mpas-jedi` test suite, or 
-  disable it for `MPAS-Workflow` calculations when using the `mpas-bundle` build. 
-  The default setting for `MPAS_DOUBLE_PRECISION` is `ON`.
-  
-  ```bash
-  cmake <mpas_bundle_dir> -DMPAS_DOUBLE_PRECISION=<ON|OFF>  [ -DBUILD_IODA_CONVERTERS=ON ] <cmake_flags>
-  ```
-  Only provide `-DBUILD_IODA_CONVERTERS=ON` if you need the ioda converters built.
 
-  Though not required, you can pass flags to cmake that define the build type, makefile
-  verbosity, build engine, and compiler flags. A table of useful CMake flags can be found [here](#useful-cmake-flags).
+Other dependencies continue to use the upstream JCSDA repositories.
 
-### Building on a Compute Node
+Currently unchanged:
 
-_**Due to resource limitations, it's recommended to build and run tests on a compute node.**_
+- CRTM
+  https://github.com/JCSDA/CRTMv3
 
-* Use the `run_make.bundle.sh` script to generate a batch job for building.
+- mpas-jedi
+  https://github.com/JCSDA/mpas-jedi
 
-  ```bash
-  bash <mpas_bundle_dir>/env-setup/run_make.bundle.sh -A <derecho_account> -c <compiler> -n
-  ```
-* Submit the job with ```qsub```.
-  ```bash
-  qsub make.pbs.sh 
-  ```
 
-* When the above job finishes, generate a batch job for running mpas-jedi's test suite and submit it using ```qsub```
-  ```bash
-  <mpas_bundle_dir>/env-setup/run_make.bundle.sh -A <derecho_account> -c <compiler> -x ctest -n
-  ```
-  ```bash
-  qsub ctest.pbs.sh
-  ```
+## Changes in This Fork
 
-* If you built the ioda converters, generate a batch job for running the ioda converters test suite and submit it using ```qsub```
-  ```bash
-  <mpas_bundle_dir>/env-setup/run_make.bundle.sh -A <derecho_account> -c <compiler> -x ctest-ioda -n
-  ```
-  ```bash
-  qsub ctest-ioda.pbs.sh
-  ```
+The top-level CMake configuration has been modified so that the AOCC build
+uses the AOCC-compatible branches.
 
-### Building in an Interactive Session
+The following entries were changed from:
 
-* Start an interactive session.
-  ```bash
-  qsub -A <derecho_account> -N cc-mpas-bundle -q main -l walltime=03:00:00 -l select=1:ncpus=32 -I
-  ```
-* Once the session starts, source the environment configuration script as you did in this [step](#env_script).
-* Enter the ```mpas-bundle``` build directory
-   ```bash
-   cd <mpas_bundle_build_dir>
-   ```
-  and start the build. Make sure to specify the number of cores ```GNU Make``` should use with the ```-j``` flag.
-  In the below command, ```mpas-bundle``` is compiled using 32 cores.
-   ```bash
-   make -j32
-   ```
-  When ```mpas-bundle``` is finished building, enter the ```mpas-jedi``` build directory 
-  ```bash
-  cd <mpas_bundle_build_dir>/mpas-jedi
-  ```
-  and run ctest. 
-  ```bash
-  ctest <ctest_flags>
-  ```
-  You can execute ctest without any flags to run all available tests with default settings.
-  However, ctest supports numerous flags that allow you to customize the test execution. For a table of
-  useful ```ctest```
-  flags, click [here](#useful-ctest-flags).
+    https://github.com/JCSDA/<repository>.git
+    BRANCH develop
 
-  If you built the ioda converters, when ```mpas-bundle``` is finished building, enter the ```iodaconv``` build directory 
-  ```bash
-  cd <mpas_bundle_build_dir>/iodaconv
-  ```
-  and run ctest. 
-  ```bash
-  ctest -R "ncar|satbias|iodaconv_bufr|_dpr_gpm|amsr2_gcom|_gmi_gpmiodaconv_atms|iodaconv_tropics|_gnssaro_netcdf_conv" <ctest_flags>
-  ```
+to:
 
-### Useful CMake Flags
+    https://github.com/wreckdump/<repository>.git
+    BRANCH aocc-support
 
-| Flag                       | Description                                                           | Acceptable Values                                | Default              |
-|----------------------------|-----------------------------------------------------------------------|--------------------------------------------------|----------------------|
-| `-G`                       | Specifies the generator to use for the build system.                  | ```Unix Makefiles```, ```Ninja```, ```Meson```.  | ```Unix Makefiles``` |
-| `-DCMAKE_BUILD_TYPE`       | Defines the type of build.                                            | ```Debug```, ```Release```, ```RelWithDebInfo``` | ```Release```        |
-| `-DCMAKE_VERBOSE_MAKEFILE` | Enables verbose output from the makefile, useful for debugging.       | ```ON```, ```OFF```                              | ```OFF```            |
-| `-DMPAS_DOUBLE_PRECISION`  | __MPAS-MODEL__: Use double precision for floating point calculations. | ```ON```, ```OFF```                              | ```ON```             | 
 
-### Useful CTest Flags
+Affected repositories:
 
-| Flag                      | Description                                                                                                        | Acceptable Values                                                   |
-|---------------------------|--------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------|
-| `--build-and-test`        | Build and test a project.                                                                                          | Path to project and build tree, additional arguments                |
-| `--test-action`           | Specifies the action to perform (e.g., test, start, update, configure, build).                                     | ```test```, ```start```, ```update```, ```configure```, ```build``` |
-| `--output-on-failure`     | Output anything from the test program if it fails.                                                                 | N/A                                                                 |
-| `--parallel`              | Run the tests in parallel using the given number of jobs.                                                          | Number of jobs (e.g., `32`)                                         |
-| `--schedule-random`       | Schedule tests in random order.                                                                                    | N/A                                                                 |
-| `--stop-on-failure`       | Stop running tests after the first test fails.                                                                     | N/A                                                                 |
-| `--timeout`               | Set a global timeout for all tests, after which CTest will kill the test.                                          | Timeout in seconds (e.g., `120`)                                    |
-| `--verbose`               | Enable verbose output from tests.                                                                                  | N/A                                                                 |
-| `--repeat`                | Repeat the tests according to a specified mode (e.g., until fail, until pass, after timeout).                      | ```until-fail```, ```until-pass```, ```after-timeout```             |
-| `--extra-submit`          | Specify files to submit to a dashboard. Files are submitted to the first dashboard mentioned in CTestConfig.cmake. | File paths                                                          |
-| `--label-summary`         | Print a summary of test results grouped by label.                                                                  | N/A                                                                 |
-| `--subproject-summary`    | Print a summary of test results grouped by subproject.                                                             | N/A                                                                 |
-| `-C` or `--build-config`  | Specify the configuration type to build/test when using a multi-configuration generator.                           | ```Debug```, ```Release```, ```RelWithDebInfo```                    |
-| `-R` or `--tests-regex`   | Run only the tests whose names match the given regular expression.                                                 | Regular expression (e.g., `MyTest*`)                                |
-| `-E` or `--exclude-regex` | Exclude tests whose names match the given regular expression.                                                      | Regular expression (e.g., `LongRunningTest*`)                       |
-| `-L` or `--label-regex`   | Run only the tests with labels matching the given regular expression.                                              | Regular expression (e.g., `Nightly*`)                               |
-| `-j` or `--parallel`      | Run the tests in parallel using the given number of jobs.                                                          | Number of jobs (same as `--parallel`)                               |
+- oops
+- vader
+- saber
+- ioda
+- ufo
+
+
+## Building With AOCC
+
+Example configuration:
+
+    mkdir build
+    cd build
+
+    cmake .. \
+      -DCMAKE_C_COMPILER=clang \
+      -DCMAKE_CXX_COMPILER=clang++ \
+      -DCMAKE_Fortran_COMPILER=mpifort \
+      -DCMAKE_C_FLAGS="-Wno-error -march=znver2" \
+      -DCMAKE_CXX_FLAGS="-stdlib=libc++ -Wno-error -Dgsl_FEATURE_GSL_COMPATIBILITY_MODE=1 -Dgsl_CONFIG_DEFAULTS_VERSION=1 -march=znver2" \
+      -DCMAKE_Fortran_FLAGS="-Wno-error -march=znver2 -ffree-form -DSINGLE_PRECISION" \
+      -DCMAKE_Fortran_FLAGS_RELEASE="-O3 -g -march=znver2 -ffree-form -DSINGLE_PRECISION" \
+      -DNetCDF_CXX_LIBRARY=/usr/lib/libnetcdf-cxx4.so \
+      -DNetCDF_CXX_INCLUDE_DIR=/usr/include \
+      -DOOPS_ENABLE_STACKTRACE=OFF \
+      -DOOPS_STACKTRACE_PROVIDER=none \
+      -DBUILD_TESTING=OFF \
+      -DENABLE_TESTS=OFF \
+      -DCMAKE_BUILD_TYPE=Release
+
+
+Then:
+
+    make -j
+
+
+## Known AOCC Issue Fixed
+
+### SABER compilation failure
+
+The upstream SABER development branch introduced changes in
+SaberCentralBlock that are incompatible with the previous dependency state
+used by MPAS-Bundle.
+
+The failure appears as:
+
+    error: use of undeclared identifier 'groupOuterBlockChains_'
+
+and:
+
+    error: no member named 'outerBlocks' in
+    'saber::SaberCentralBlockGroupParameters'
+
+
+The AOCC-support branch retains the compatible SABER implementation required
+for this build environment.
+
+
+## Updating Upstream Dependencies
+
+The upstream JCSDA repositories are under active development.
+
+To update:
+
+1. Fetch upstream changes:
+
+       git fetch upstream
+
+2. Review changes:
+
+       git log upstream/develop
+
+3. Update individual AOCC branches as needed.
+
+Example:
+
+       cd saber
+
+       git fetch upstream
+
+       git checkout aocc-support
+
+       git merge upstream/develop
+
+
+Changes should be tested with the AOCC build before merging.
+
+
+## Relationship With Upstream
+
+This fork is not intended to replace the official JCSDA repositories.
+
+The purpose is to provide:
+
+- AOCC compiler compatibility
+- reproducible builds
+- a place to maintain compiler-specific patches
+
+If the fixes become generally applicable, they should eventually be submitted
+upstream as pull requests to the corresponding JCSDA repositories.
+
+
+## Environment
+
+Tested with:
+
+- AMD AOCC 5.2
+- LLVM/Flang based Fortran compiler
+- AMD Zen architecture
+- MPAS-JEDI development environment
+
+
+## License
+
+This repository follows the same license as the original JCSDA MPAS-Bundle
+project.
